@@ -1,8 +1,11 @@
 package com.practica2.rest.Service;
 
 import com.practica2.rest.Model.Matricula;
+import com.practica2.rest.Model.ModelResponse;
 import com.practica2.rest.Repository.MatriculaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -38,10 +41,15 @@ public class MatriculaService{
         return this.matriculaRepository.save(m);
     }
 
-    public String calcularTarifa(Matricula m){
+    public ResponseEntity<ModelResponse<Matricula>> calcularTarifa(Matricula m){
         System.out.println("Matricula calcular tarifa= " + m);
         if(!m.isEntrada()) { // Entrada es false, por lo que ha salido, si no, no tendría hora de salida
             List<Matricula> matriculaList = this.matriculaRepository.findRecordsByMatricula(m.getMatricula());
+            if(matriculaList.isEmpty()){
+                return ResponseEntity
+                        .status(HttpStatus.PRECONDITION_FAILED)
+                        .body(new ModelResponse<>("Primero debe de haber ingresado algun resultado de la matricula", m));
+            }
             Timestamp t2 = matriculaList.get(matriculaList.size()-1).getHora();
             Timestamp t1 = matriculaList.get(matriculaList.size() - 2).getHora(); // Cogemos la primera hora (entrada)
             long totalSegundos = (t2.getTime()-t1.getTime()) / 1000;
@@ -50,7 +58,7 @@ public class MatriculaService{
             long horas = totalSegundos / 3600;
             long minutos = (totalSegundos % 3600) / 60;
             long segundos = totalSegundos % 60;
-            String tiempo = "Horas: " + horas + " - Minutos: " + minutos + " Segundos: " + segundos;
+            String tiempo = "Horas: " + horas + ", Minutos: " + minutos + ", Segundos: " + segundos;
 
             // Aplicar Coste
 
@@ -60,10 +68,17 @@ public class MatriculaService{
             BigDecimal bd = new BigDecimal(coste);
             bd = bd.setScale(3, RoundingMode.HALF_UP);
             double costeRedondeado = bd.doubleValue();
-            return "Coste = " + costeRedondeado + " € \n Tiempo= " + tiempo + "\n Matricula= " + m;
-
+            String mensaje =  "Coste = " + costeRedondeado + " € | Tiempo= " + tiempo;
+//            ModelResponse<Matricula> body = new ModelResponse<>(mensaje,m);
+//            ResponseEntity<ModelResponse<Matricula>> res = new ResponseEntity<>(body,HttpStatus.OK);
+            return ResponseEntity
+                    .status(HttpStatus.OK)
+                    .body(new ModelResponse<>(mensaje,m));
         }else{
-            return "Error - La matricula aun está en el parking";
+            String mensaje =  "Error - La matricula aun está en el parking";
+            return ResponseEntity
+                    .status(HttpStatus.PRECONDITION_FAILED)
+                    .body(new ModelResponse<>(mensaje,m));
         }
     }
 

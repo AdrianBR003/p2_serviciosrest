@@ -23,6 +23,7 @@ public class Matricula {
     @CreationTimestamp(source = SourceType.DB)
     private Timestamp hora;
 
+    // El constructor vacio es necesario para que SpringBoot serialice correctamente
     public Matricula() {
     }
 
